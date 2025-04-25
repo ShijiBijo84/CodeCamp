@@ -1,15 +1,32 @@
 
 
+/**
+ * @param {Function} fn
+ * @param {number} t
+ * @return {Function}
+ */
 var timeLimit = function (fn, t) {
-    const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject("Time Limit Exceeded"), t)
-    );
-    return Promise.race([timeoutPromise, fn]);
-}
+    //args passed through limited function
+    return async function (...args) {
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject("Time Limit Exceeded"), t)
+        );
 
-const fn =
-    async (a, b) => { await new Promise(res => setTimeout(res, 120)); return a + b; }
+        const functionPromise = fn(...args); // Run the async function
 
-timeLimit(fn(5, 10), 10).then((res) => console.log(res)).
-    catch(e => console.log(e))
+        // Wait for either the function to resolve or the timeout to reject
+        return Promise.race([functionPromise, timeoutPromise]);
+    }
+};
 
+
+const fn = async (a, b) => {
+    await new Promise(res => setTimeout(res, 80));
+    return a + b;
+};
+
+const limitedFn = timeLimit(fn, 100);
+
+limitedFn(5, 10)
+    .then((res) => console.log(res))
+    .catch(e => console.log(e));
